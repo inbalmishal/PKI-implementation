@@ -77,16 +77,19 @@ class VA:
             return False
 
         # initialize
-        curr_cert = cert_to_check
+        old_cert = cert_to_check
+        ca_cert = cert_to_check
 
         # check the CA
-        while (curr_cert.my_CA_domain != self.root_CA_domain) and (curr_cert not in self.cancelled_certificates) and \
-                curr_cert is not None:
-            old_cert = curr_cert
-            curr_cert = utils.str2cert(self.get_cert(curr_cert.my_CA_ip, curr_cert.my_CA_port))
+        while (ca_cert.my_CA_domain != self.root_CA_domain) and (ca_cert not in self.cancelled_certificates) and \
+                ca_cert is not None:
+            old_cert = ca_cert
+            ca_cert = utils.str2cert(self.get_cert(ca_cert.my_CA_ip, ca_cert.my_CA_port))
+            if not is_val_date(ca_cert):
+                return False
 
             # verify the signature
-            pk = curr_cert.public_key
+            pk = ca_cert.public_key
             try:
                 pk.verify(old_cert.CA_signature, old_cert.cert_to_sign().encode(),
                           padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
@@ -95,9 +98,16 @@ class VA:
                 return False
 
         # when we in the root CA
-        if curr_cert.my_CA_domain == self.root_CA_domain:
-            #TODO ok, the ca is the root but we still need to check the signature - maybe???
+        if ca_cert.my_CA_domain == self.root_CA_domain:
+            pk = ca_cert.public_key
+            try:
+                pk.verify(old_cert.CA_signature, old_cert.cert_to_sign().encode(),
+                          padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
+                          hashes.SHA256())
+            except cryptography.exceptions.InvalidSignature:
+                return False
             return True
+
         return False
 
     @staticmethod

@@ -21,10 +21,9 @@ class EntitySockets:
 
     def start(self):
         self.serv_thread.start()
-        print('-----------------------------------------------------------------------------------')
         self.cli_thread.start()
 
-    # -----------------------------------client function--------------------------------------
+    # -----------------------------------client functions--------------------------------------
 
     def cli_start(self):
         while True:
@@ -107,7 +106,7 @@ class EntitySockets:
         client_socket.close()
         print('------------------------------------------------------------------------------\n')
 
-    # -----------------------------------server function--------------------------------------
+    # -----------------------------------server functions--------------------------------------
 
     def start_serv(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
