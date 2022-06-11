@@ -57,6 +57,10 @@ class EntityServer:
                     else:
                         connection.send(b'bad message!')
                     print('finish verify_message action')
+                elif action == "get_cert":
+                    res = self.send_cert()
+                    connection.send(res.encode())
+                    print('finish send_cert action')
 
             else:
                 print('Connection closed', )
@@ -75,26 +79,30 @@ class EntityServer:
         is_CA = (is_CA_str == "True")
         public_key = utils.str2pub_key(public_key_str)
 
-        cert = utils.Certificate(domain, public_key, signer_name, self.entity, is_CA, validity_date)
+        cert = utils.Certificate(domain, public_key, signer_name, self.entity.domain,
+                                 self.ip, self.port, is_CA, validity_date)
         CA_signature = self.entity.signature(cert.cert_to_sign().encode())
         cert.CA_signature = CA_signature
 
         return str(cert)
 
     def verify_message(self, content):
-        cert, sep_letter, msg_and_signature = content.partition("]")
-        cert += sep_letter
+        cert, sep_letter, msg_and_signature = content.partition("]" + constants.SEP_STRING)
+        cert += ']'
         cert = utils.str_to_class(cert)
 
-        msg, signature = msg_and_signature.partition("***")
+        msg, sep_string, signature = msg_and_signature.partition(constants.SEP_STRING)
 
         # get the certification and check it
         res1 = self.verify_cert(cert)
 
         # get the message and check it
-        res2 = self.verify_msg_content(msg, cert, signature)
+        res2 = self.verify_msg_content(msg.encode(), cert, signature.encode())
 
         return res1 and res2
+
+    def send_cert(self):
+        return utils.cert2str(self.entity.certificate)
 
     @staticmethod
     def verify_msg_content(msg, sender_certificate, curr_signature):
@@ -109,7 +117,7 @@ class EntityServer:
     @staticmethod
     def verify_cert(cert):
         entity_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        entity_server_socket.connect((constants.VA_IP, constants.VA_IP))
+        entity_server_socket.connect((constants.VA_IP, constants.VA_PORT))
         data = entity_server_socket.recv(constants.MESSAGE_SIZE).decode()
         print(data)
 
@@ -127,8 +135,10 @@ class EntityServer:
         print('------------------------------------------------------------------------------\n')
         return res
 
+
 if __name__ == '__main__':
     is_CA = input("CA? [y/n]: ")
     is_CA = (is_CA == 'y')
-    CA = EntityServer(entity.Entity(domain="inbal", is_CA=is_CA), constants.SERVER_HOST_IP, constants.SERVER_PORT)
+    CA = EntityServer(entity.Entity(domain=constants.ROOT_CA_DOMAIN, is_CA=is_CA), constants.SERVER_HOST_IP,
+                      constants.SERVER_PORT)
     CA.start_serv()

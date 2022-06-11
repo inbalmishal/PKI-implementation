@@ -2,6 +2,9 @@ import json
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends.openssl.rsa import _RSAPrivateKey, _RSAPublicKey
+from datetime import datetime
+
+import constants
 from constants import *
 from certificate import Certificate
 
@@ -49,7 +52,8 @@ def str2pub_key(pem_string):
 
 
 def is_cert_type(string):
-    if '[domain:' in string and ', public_key:' in string and ', signer_name:' in string and ', old_CA:' in string and \
+    if '[domain:' in string and ', public_key:' in string and ', signer_name:' in string and\
+            ', my_CA_domain:' in string and ', my_CA_ip:' in string and ', my_CA_port:' in string and\
             ', CA_signature:' in string and ', is_CA:' in string and ', validity_date:' in string and ']' in string:
         return True
     return False
@@ -64,13 +68,22 @@ def str2cert(string):
         raise Exception("not a certificate type")
     else:
         domain = string[8:string.find(',')]
-        public_key = string[string.find(', public_key:') + len(', public_key:'):string.find(',', 2)]
-        signer_name = string[string.find(', signer_name:') + len(', signer_name:'):string.find(',', 3)]
-        old_CA = string[string.find(', old_CA:') + len(', old_CA:'):string.find(',', 4)]
-        is_CA = string[string.find(', is_CA:') + len(', is_CA:'):string.find(',', 5)]
-        validity_date = string[string.find(', validity_date:') + len(', validity_date:'):string.find(',', 6)]
-        ca_signature = string[string.find(', ca_signature:') + len(', ca_signature:'):string.find(',', 7)]
-        return Certificate(domain, public_key, signer_name, old_CA, is_CA, validity_date, ca_signature)
+        a = string[
+            string.find(', public_key:') + len(', public_key:'):string.find('\n-----END PUBLIC KEY-----\n, ') + len(
+                '\n-----END PUBLIC KEY-----\n')]
+        public_key = str2pub_key(a)
+        signer_name = string[string.find(', signer_name:') + len(', signer_name:'):string.find(', my_CA_domain:')]
+        my_CA_domain = string[string.find(', my_CA_domain:') + len(', my_CA_domain:'):string.find(', my_CA_ip:')]
+        my_CA_ip = string[string.find(', my_CA_ip:') + len(', my_CA_ip:'):string.find(', my_CA_port:')]
+        my_CA_port = string[string.find(', my_CA_port:') + len(', my_CA_port:'):string.find(', CA_signature:')]
+        ca_signature = string[string.find(', CA_signature:') + len(', CA_signature:'):string.find(', is_CA:')]
+        is_CA_str = string[string.find(', is_CA:') + len(', is_CA:'):string.find(', validity_date:')]
+        is_CA = (is_CA_str == 'True')
+        validity_date = datetime.strptime(string[string.find(', validity_date:') + len(', validity_date:'):-1],
+                                          constants.DATE_FORMAT)
+
+        return Certificate(domain, public_key, signer_name, my_CA_domain, my_CA_ip, my_CA_port, is_CA, validity_date,
+                           ca_signature)
 
 
 def class_to_str(object):

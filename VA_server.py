@@ -12,15 +12,17 @@ import utils
 
 
 class VA:
-    def __init__(self, root_CA):
+    def __init__(self, root_CA_domain, ip, port):
         self.cancelled_certificates = []
-        self.root_CA = root_CA
+        self.root_CA_domain = root_CA_domain
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.thread_count = 0
+        self.ip = ip
+        self.port = port
 
     def start_serv(self):
         print("Setting up the server...")
-        self.server_socket.bind((constants.VA_IP, constants.VA_PORT))
+        self.server_socket.bind((self.ip, self.port))
         self.server_socket.listen(5)
         print("Listening for clients...")
 
@@ -62,41 +64,60 @@ class VA:
 
         connection.close()
 
-    def verify_cert(self, content):
+    def verify_cert(self, cert_str):
         def is_val_date(cert):
             curr_date = datetime.date(datetime.now())
-            if cert.validity_date + relativedelta(years=constants.VALIDITY_TIME) < curr_date:
+            if datetime.date(cert.validity_date + relativedelta(years=constants.VALIDITY_TIME)) < curr_date:
                 return False
             return True
 
-        cert_to_check = utils.str2cert(content)
+        cert_to_check = utils.str2cert(cert_str)
 
         if cert_to_check in self.cancelled_certificates or not is_val_date(cert_to_check):
             return False
 
-        curr_ca = cert_to_check.my_CA
+        # initialize
+        curr_cert = cert_to_check
 
-        # check the ca
-        while (curr_ca is not self.root_CA) and (curr_ca.certificate is not None) and (
-                curr_ca.certificate not in self.cancelled_certificates):
-            curr_ca = curr_ca.certificate.my_CA
+        # check the CA
+        while (curr_cert.my_CA_domain != self.root_CA_domain) and (curr_cert not in self.cancelled_certificates) and \
+                curr_cert is not None:
+            old_cert = curr_cert
+            curr_cert = utils.str2cert(self.get_cert(curr_cert.my_CA_ip, curr_cert.curr_cert.my_CA_port))
 
-        if curr_ca is self.root_CA:
-            pk = cert_to_check.my_CA.public_key
+            # verify the signature
+            pk = curr_cert.public_key
             try:
-                pk.verify(cert_to_check.CA_signature, str(cert_to_check).encode(),
+                pk.verify(curr_cert.CA_signature, old_cert.cert_to_sign().encode(),
                           padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
                           hashes.SHA256())
-            except cryptography.exceptions.InvalidSignature as e:
+            except cryptography.exceptions.InvalidSignature:
                 return False
+
+        # when we in the root CA
+        if curr_cert.my_CA_domain == self.root_CA_domain:
             return True
+        return False
 
-        else:
-            return False
+    @staticmethod
+    def get_cert(ip, port) -> str:
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((ip, port))
+        data = client_socket.recv(constants.MESSAGE_SIZE).decode()
+        print(data)
 
-    def revoke_cert(self, content):
+        client_socket.send(b'get_cert')
+
+        data = client_socket.recv(constants.MESSAGE_SIZE).decode()
+
+        # close the connection
+        client_socket.close()
+        return data
+
+
+    def revoke_cert(self, cert_str):
         try:
-            cert = utils.str2cert(content)
+            cert = utils.str2cert(cert_str)
             self.cancelled_certificates.append(cert)
         except Exception as e:
             print('the error: ', e)
@@ -105,5 +126,5 @@ class VA:
         return True
 
 if __name__ == '__main__':
-    root_CA = Entity_server()
-    va = VA()
+    va = VA(constants.ROOT_CA_DOMAIN, constants.VA_IP, constants.VA_PORT)
+    va.start_serv()

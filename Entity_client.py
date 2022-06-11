@@ -1,4 +1,5 @@
 import socket
+from _thread import *
 
 import constants
 import entity
@@ -10,6 +11,11 @@ class EntityClient:
         self.entity = entity
         self.ip = ip
         self.port = port
+        self.clients_thread_count = 0
+
+    def start(self):
+        start_new_thread(self.cli_start, ())
+        start_new_thread(self.threaded_client, (client,))
 
     def cli_start(self):
         while True:
@@ -46,8 +52,9 @@ class EntityClient:
 
         if utils.is_cert_type(data):
             self.entity.certificate = utils.str2cert(data)
+            print('action succeeded:)')
         else:
-            print(data)
+            print('action failed:(')
 
         # close the connection
         client_socket.close()
@@ -60,8 +67,9 @@ class EntityClient:
         print(data)
 
         action = 'verify_message'
-        content = utils.cert2str(self.entity.certificate) + msg_content + '***' + str(
-            self.entity.signature(msg_content))
+        content = utils.cert2str(
+            self.entity.certificate) + constants.SEP_STRING + msg_content + constants.SEP_STRING + str(
+            self.entity.signature(msg_content.encode()))
         message = action.encode() + b' ' + content.encode()
 
         client_socket.send(message)
