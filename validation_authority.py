@@ -21,15 +21,15 @@ class VA:
         if cert_to_check in self.cancelled_certificates or not is_val_date(cert_to_check):
             return False
 
-        curr_ca = cert_to_check.old_CA
+        curr_ca = cert_to_check.my_CA
 
         # check the ca
         while (curr_ca is not self.root_CA) and (curr_ca.certificate is not None) and (
                 curr_ca.certificate not in self.cancelled_certificates):
-            curr_ca = curr_ca.certificate.old_CA
+            curr_ca = curr_ca.certificate.my_CA
 
         if curr_ca is self.root_CA:
-            pk = cert_to_check.old_CA.public_key
+            pk = cert_to_check.my_CA.public_key
             try:
                 pk.verify(cert_to_check.CA_signature, str(cert_to_check).encode(),
                           padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
