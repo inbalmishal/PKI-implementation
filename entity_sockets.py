@@ -20,8 +20,11 @@ class EntitySockets:
         self.serv_thread = Thread(target=self.start_serv)
 
     def start(self):
-        self.cli_thread.start()
         self.serv_thread.start()
+        print('-----------------------------------------------------------------------------------')
+        self.cli_thread.start()
+
+    # -----------------------------------client function--------------------------------------
 
     def cli_start(self):
         while True:
@@ -81,7 +84,7 @@ class EntitySockets:
 
         # close the connection
         client_socket.close()
-        print('------------------------------------------------------------------------------\n')
+        print('-----------------------------------------------------------------------------------\n')
 
     def send_message(self, msg_content, en_ip=constants.ROOT_CA_IP, en_port=constants.ROOT_CA_PORT):
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -104,7 +107,7 @@ class EntitySockets:
         client_socket.close()
         print('------------------------------------------------------------------------------\n')
 
-    # -------------------------------------------------------------------------
+    # -----------------------------------server function--------------------------------------
 
     def start_serv(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
