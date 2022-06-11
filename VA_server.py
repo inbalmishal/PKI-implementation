@@ -114,7 +114,6 @@ class VA:
         client_socket.close()
         return data
 
-
     def revoke_cert(self, cert_str):
         try:
             cert = utils.str2cert(cert_str)
