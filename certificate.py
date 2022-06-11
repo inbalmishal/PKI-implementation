@@ -6,7 +6,7 @@ import utils
 
 class Certificate:
     def __init__(self, domain, public_key, signer_name, my_CA_domain, my_CA_ip, my_CA_port, is_CA, validity_date,
-                 ca_signature=None):
+                 ca_signature=b''):
         self.domain = domain
         self.public_key = public_key
         self.signer_name = signer_name
@@ -22,7 +22,7 @@ class Certificate:
         val_date_str = self.validity_date.strftime(constants.DATE_FORMAT)
         return f"[domain:{str(self.domain)}, public_key:{pkstring}, signer_name:{str(self.signer_name)}, " \
                f"my_CA_domain:{str(self.my_CA_domain)}, my_CA_ip:{str(self.my_CA_ip)}, " \
-               f"my_CA_port:{str(self.my_CA_port)}, CA_signature:{str(self.CA_signature)}, is_CA:{str(self.is_CA)}" \
+               f"my_CA_port:{str(self.my_CA_port)}, CA_signature:{self.CA_signature.hex()}, is_CA:{str(self.is_CA)}" \
                f", validity_date:{val_date_str}]"
 
     def cert_to_sign(self):
@@ -30,3 +30,4 @@ class Certificate:
         return f"[domain:{str(self.domain)}, public_key:{pkstring}, signer_name:{str(self.signer_name)}" \
                f", my_CA_domain:{str(self.my_CA_domain)}, my_CA_ip:{str(self.my_CA_ip)}" \
                f", my_CA_port:{str(self.my_CA_port)}, is_CA:{str(self.is_CA)}, validity_date:{str(self.validity_date)}]"
+

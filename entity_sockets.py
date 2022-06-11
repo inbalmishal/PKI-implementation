@@ -27,20 +27,32 @@ class EntitySockets:
         while True:
             print("what do you want to do? (choose a number)")
             print("[1] - get a certificate from root_CA")
-            print("[2] - send message to other root_CA to check its validity")
-            print("[3] - turn into CA using root CA")
-            print("[4] - get a certificate from any CA")
+            print("[2] - get a certificate from any CA")
+            print("[3] - send message to root_CA to check its validity")
+            print("[4] - send message to other entity to check its validity")
+            print("[5] - turn into CA using root CA")
+            print("[6] - turn into CA using any CA")
             print("[other] - exit client side")
             res = input()
             if res == '1':
                 self.issue_on_CA()
             elif res == '2':
+                ca_ip = input("Enter CA ip: ")
+                ca_port = int(input("Enter CA port: "))
+                self.issue_on_CA(ca_ip, ca_port)
+            elif res == '3':
                 msg = input("enter your message to check: ")
                 self.send_message(msg)
-            elif res == '3':
+            elif res == '4':
+                msg = input("enter your message to check: ")
+                en_ip = input("Enter entity ip: ")
+                en_port = int(input("Enter entity port: "))
+                self.send_message(msg, en_ip, en_port)
+            elif res == '5':
                 self.entity.is_CA = True
                 self.issue_on_CA()
-            elif res == '4':
+            elif res == '6':
+                self.entity.is_CA = True
                 ca_ip = input("Enter CA ip: ")
                 ca_port = int(input("Enter CA port: "))
                 self.issue_on_CA(ca_ip, ca_port)
@@ -65,21 +77,21 @@ class EntitySockets:
             self.entity.certificate = utils.str2cert(data)
             print('action succeeded:)')
         else:
-            print('action failed:(')
+            print('action failed:(... ', data)
 
         # close the connection
         client_socket.close()
         print('------------------------------------------------------------------------------\n')
 
-    def send_message(self, msg_content):
+    def send_message(self, msg_content, en_ip=constants.ROOT_CA_IP, en_port=constants.ROOT_CA_PORT):
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((constants.ROOT_CA_IP, constants.ROOT_CA_PORT))
+        client_socket.connect((en_ip, en_port))
         data = client_socket.recv(constants.MESSAGE_SIZE).decode()
         print(data)
 
         action = 'verify_message'
         content = utils.cert2str(self.entity.certificate) + constants.SEP_STRING + msg_content + constants.SEP_STRING \
-                  + str(self.entity.signature(msg_content.encode()))
+                  + (self.entity.signature(msg_content.encode())).hex()
         message = action.encode() + b' ' + content.encode()
 
         client_socket.send(message)
@@ -165,9 +177,12 @@ class EntitySockets:
         return str(cert)
 
     def verify_message(self, content):
-        cert, sep_letter, msg_and_signature = content.partition("]" + constants.SEP_STRING)
-        cert += ']'
-        cert = utils.str_to_class(cert)
+        cert, sep_letter, msg_and_signature = content.partition(constants.SEP_STRING)
+
+        if cert == "None":
+            return False
+
+        cert = utils.str2cert(cert)
 
         msg, sep_string, signature = msg_and_signature.partition(constants.SEP_STRING)
 
@@ -175,7 +190,7 @@ class EntitySockets:
         res1 = self.verify_cert(cert)
 
         # get the message and check it
-        res2 = self.verify_msg_content(msg.encode(), cert, signature.encode())
+        res2 = self.verify_msg_content(msg.encode(), cert, bytes.fromhex(signature))
 
         return res1 and res2
 
@@ -212,4 +227,3 @@ class EntitySockets:
         entity_server_socket.close()
         print('------------------------------------------------------------------------------\n')
         return res
-

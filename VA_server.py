@@ -83,12 +83,12 @@ class VA:
         while (curr_cert.my_CA_domain != self.root_CA_domain) and (curr_cert not in self.cancelled_certificates) and \
                 curr_cert is not None:
             old_cert = curr_cert
-            curr_cert = utils.str2cert(self.get_cert(curr_cert.my_CA_ip, curr_cert.curr_cert.my_CA_port))
+            curr_cert = utils.str2cert(self.get_cert(curr_cert.my_CA_ip, curr_cert.my_CA_port))
 
             # verify the signature
             pk = curr_cert.public_key
             try:
-                pk.verify(curr_cert.CA_signature, old_cert.cert_to_sign().encode(),
+                pk.verify(old_cert.CA_signature, old_cert.cert_to_sign().encode(),
                           padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
                           hashes.SHA256())
             except cryptography.exceptions.InvalidSignature:
@@ -96,6 +96,7 @@ class VA:
 
         # when we in the root CA
         if curr_cert.my_CA_domain == self.root_CA_domain:
+            #TODO ok, the ca is the root but we still need to check the signature - maybe???
             return True
         return False
 
@@ -106,7 +107,7 @@ class VA:
         data = client_socket.recv(constants.MESSAGE_SIZE).decode()
         print(data)
 
-        client_socket.send(b'get_cert')
+        client_socket.send(b'get_cert None')
 
         data = client_socket.recv(constants.MESSAGE_SIZE).decode()
 

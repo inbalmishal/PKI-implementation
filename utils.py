@@ -64,7 +64,9 @@ def cert2str(cert):
 
 
 def str2cert(string):
-    if not is_cert_type(string):
+    if string == "None":
+        return None
+    elif not is_cert_type(string):
         raise Exception("not a certificate type")
     else:
         domain = string[8:string.find(',')]
@@ -75,8 +77,8 @@ def str2cert(string):
         signer_name = string[string.find(', signer_name:') + len(', signer_name:'):string.find(', my_CA_domain:')]
         my_CA_domain = string[string.find(', my_CA_domain:') + len(', my_CA_domain:'):string.find(', my_CA_ip:')]
         my_CA_ip = string[string.find(', my_CA_ip:') + len(', my_CA_ip:'):string.find(', my_CA_port:')]
-        my_CA_port = string[string.find(', my_CA_port:') + len(', my_CA_port:'):string.find(', CA_signature:')]
-        ca_signature = string[string.find(', CA_signature:') + len(', CA_signature:'):string.find(', is_CA:')]
+        my_CA_port = int(string[string.find(', my_CA_port:') + len(', my_CA_port:'):string.find(', CA_signature:')])
+        ca_signature = bytes.fromhex(string[string.find(', CA_signature:') + len(', CA_signature:'):string.find(', is_CA:')])
         is_CA_str = string[string.find(', is_CA:') + len(', is_CA:'):string.find(', validity_date:')]
         is_CA = (is_CA_str == 'True')
         validity_date = datetime.strptime(string[string.find(', validity_date:') + len(', validity_date:'):-1],
@@ -86,21 +88,21 @@ def str2cert(string):
                            ca_signature)
 
 
-def class_to_str(object):
-    if type(object) == _RSAPrivateKey:
-        return pr_key2str(object)
-    if type(object) == _RSAPublicKey:
-        return pub_key2str(object)
-    if type(object) == Certificate:
-        return cert2str(object)
-
-    json_string = json.dumps(object)
-    return json_string
-
-
-def str_to_class(string):
-    if is_cert_type(string):
-        return str2cert(string)
-    else:
-        object = json.loads(string)
-        return object
+# def class_to_str(object):
+#     if type(object) == _RSAPrivateKey:
+#         return pr_key2str(object)
+#     if type(object) == _RSAPublicKey:
+#         return pub_key2str(object)
+#     if type(object) == Certificate:
+#         return cert2str(object)
+#
+#     json_string = json.dumps(object)
+#     return json_string
+#
+#
+# def str_to_class(string):
+#     if is_cert_type(string):
+#         return str2cert(string)
+#     else:
+#         object = json.loads(string)
+#         return object
