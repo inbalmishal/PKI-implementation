@@ -7,6 +7,12 @@ from constants import *
 from certificate import Certificate
 
 
+class Colors:
+    server = '\033[92m'  # GREEN
+    client = '\033[94m'  # YELLOW
+    RESET = '\033[0m'  # RESET COLOR
+
+
 def generate_keys():
     private_key = rsa.generate_private_key(
         public_exponent=PUBLIC_EXPONENT,
@@ -84,23 +90,3 @@ def str2cert(string):
 
         return Certificate(domain, public_key, signer_name, my_CA_domain, my_CA_ip, my_CA_port, is_CA, validity_date,
                            ca_signature)
-
-
-# def class_to_str(object):
-#     if type(object) == _RSAPrivateKey:
-#         return pr_key2str(object)
-#     if type(object) == _RSAPublicKey:
-#         return pub_key2str(object)
-#     if type(object) == Certificate:
-#         return cert2str(object)
-#
-#     json_string = json.dumps(object)
-#     return json_string
-#
-#
-# def str_to_class(string):
-#     if is_cert_type(string):
-#         return str2cert(string)
-#     else:
-#         object = json.loads(string)
-#         return object

@@ -5,7 +5,7 @@ from datetime import datetime
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 import cryptography.exceptions
-
+import time
 import constants
 import utils
 
@@ -21,51 +21,53 @@ class EntitySockets:
 
     def start(self):
         self.serv_thread.start()
+        time.sleep(1)
         self.cli_thread.start()
 
     # -----------------------------------client functions--------------------------------------
 
     def cli_start(self):
         while True:
-            print("what do you want to do? (choose a number)")
-            print("[1] - get a certificate from root_CA")
-            print("[2] - get a certificate from any CA")
-            print("[3] - send message to root_CA to check its validity")
-            print("[4] - send message to other entity to check its validity")
-            print("[5] - turn into CA using root CA")
-            print("[6] - turn into CA using any CA")
-            print("[other] - exit client side")
+            print(f"{utils.Colors.client}what do you want to do? (choose a number){utils.Colors.RESET}")
+            print(f"{utils.Colors.client}[1] - get a certificate from root_CA{utils.Colors.RESET}")
+            print(f"{utils.Colors.client}[2] - get a certificate from any CA{utils.Colors.RESET}")
+            print(f"{utils.Colors.client}[3] - send message to root_CA to check its validity{utils.Colors.RESET}")
+            print(f"{utils.Colors.client}[4] - send message to other entity to check its validity{utils.Colors.RESET}")
+            print(f"{utils.Colors.client}[5] - turn into CA using root CA{utils.Colors.RESET}")
+            print(f"{utils.Colors.client}[6] - turn into CA using any CA{utils.Colors.RESET}")
+            print(f"{utils.Colors.client}[7] - revoke my certificate{utils.Colors.RESET}")
+            print(f"{utils.Colors.client}[other] - stay in the menu{utils.Colors.RESET}")
             res = input()
             if res == '1':
                 self.issue_on_CA()
             elif res == '2':
-                ca_ip = input("Enter CA ip: ")
-                ca_port = int(input("Enter CA port: "))
+                ca_ip = input(f"{utils.Colors.client}Enter CA ip: {utils.Colors.RESET}")
+                ca_port = int(input(f"{utils.Colors.client}Enter CA port: {utils.Colors.RESET}"))
                 self.issue_on_CA(ca_ip, ca_port)
             elif res == '3':
-                msg = input("enter your message to check: ")
+                msg = input(f"{utils.Colors.client}enter your message to check: {utils.Colors.RESET}")
                 self.send_message(msg)
             elif res == '4':
-                msg = input("enter your message to check: ")
-                en_ip = input("Enter entity ip: ")
-                en_port = int(input("Enter entity port: "))
+                msg = input(f"{utils.Colors.client}enter your message to check: {utils.Colors.RESET}")
+                en_ip = input(f"{utils.Colors.client}Enter entity ip: {utils.Colors.RESET}")
+                en_port = int(input(f"{utils.Colors.client}Enter entity port: {utils.Colors.RESET}"))
                 self.send_message(msg, en_ip, en_port)
             elif res == '5':
                 self.entity.is_CA = True
                 self.issue_on_CA()
             elif res == '6':
                 self.entity.is_CA = True
-                ca_ip = input("Enter CA ip: ")
-                ca_port = int(input("Enter CA port: "))
+                ca_ip = input(f"{utils.Colors.client}Enter CA ip: {utils.Colors.RESET}")
+                ca_port = int(input(f"{utils.Colors.client}Enter CA port: {utils.Colors.RESET}"))
                 self.issue_on_CA(ca_ip, ca_port)
-            else:
-                return
+            elif res == '7':
+                self.revoke_my_cert(constants.VA_IP, constants.VA_PORT)
 
     def issue_on_CA(self, ca_ip=constants.ROOT_CA_IP, ca_port=constants.ROOT_CA_PORT):
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect((ca_ip, ca_port))
         data = client_socket.recv(constants.MESSAGE_SIZE).decode()
-        print(data)
+        print(f"{utils.Colors.client}{data}{utils.Colors.RESET}")
 
         action = 'issue_to_ca'
         content = self.entity.domain + ' ' + utils.pub_key2str(self.entity.public_key) + ' ' + str(self.entity.is_CA)
@@ -77,19 +79,20 @@ class EntitySockets:
 
         if utils.is_cert_type(data):
             self.entity.certificate = utils.str2cert(data)
-            print('action succeeded:)')
+            print(f"{utils.Colors.client}action succeeded:){utils.Colors.RESET}")
         else:
-            print('action failed:(... ', data)
+            print(f"{utils.Colors.client}action failed:(... {data}{utils.Colors.RESET}")
 
         # close the connection
         client_socket.close()
-        print('-----------------------------------------------------------------------------------\n')
+        print(f"{utils.Colors.client}----------------------------------------------------------------------------------"
+              f"-\n{utils.Colors.RESET}")
 
     def send_message(self, msg_content, en_ip=constants.ROOT_CA_IP, en_port=constants.ROOT_CA_PORT):
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect((en_ip, en_port))
         data = client_socket.recv(constants.MESSAGE_SIZE).decode()
-        print(data)
+        print(f"{utils.Colors.client}{data}{utils.Colors.RESET}")
 
         action = 'verify_message'
         content = utils.cert2str(self.entity.certificate) + constants.SEP_STRING + msg_content + constants.SEP_STRING \
@@ -100,28 +103,50 @@ class EntitySockets:
 
         data = client_socket.recv(constants.MESSAGE_SIZE).decode()
 
-        print(data)
+        print(f"{utils.Colors.client}{data}{utils.Colors.RESET}")
 
         # close the connection
         client_socket.close()
-        print('------------------------------------------------------------------------------\n')
+        print(f"{utils.Colors.client}----------------------------------------------------------------------------------"
+              f"-\n{utils.Colors.RESET}")
+
+    def revoke_my_cert(self, va_ip, va_port):
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((va_ip, va_port))
+        data = client_socket.recv(constants.MESSAGE_SIZE).decode()
+        print(f"{utils.Colors.client}{data}{utils.Colors.RESET}")
+
+        action = 'revoke_cert'
+        content = utils.cert2str(self.entity.certificate)
+        message = action.encode() + b' ' + content.encode()
+
+        client_socket.send(message)
+
+        data = client_socket.recv(constants.MESSAGE_SIZE).decode()
+
+        print(f"{utils.Colors.client}{data}{utils.Colors.RESET}")
+
+        # close the connection
+        client_socket.close()
+        print(f"{utils.Colors.client}----------------------------------------------------------------------------------"
+              f"-\n{utils.Colors.RESET}")
 
     # -----------------------------------server functions--------------------------------------
 
     def start_serv(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        print("Setting up the server...")
+        print(f"{utils.Colors.server}Setting up the server...{utils.Colors.RESET}")
         server_socket.bind((self.ip, self.port))
         server_socket.listen(5)
-        print("Listening for clients...")
+        print(f"{utils.Colors.server}Listening for clients...{utils.Colors.RESET}")
 
         while True:
             client, client_address = server_socket.accept()
-            print("New client joined!", client_address)
+            print(f"{utils.Colors.server}New client joined! {client_address}{utils.Colors.RESET}")
             start_new_thread(self.threaded_client, (client,))
             self.clients_thread_count += 1
-            print('Thread Number: ' + str(self.clients_thread_count))
+            print(f"{utils.Colors.server}Thread Number:  {str(self.clients_thread_count)}{utils.Colors.RESET}")
 
         server_socket.close()
 
@@ -139,23 +164,29 @@ class EntitySockets:
                     else:
                         cert_str = self.issue_entity(content)
                         connection.send(cert_str.encode())
-                    print('finish issue_to_ca action')
+                    print(f"{utils.Colors.server}finish issue_to_ca action{utils.Colors.RESET}")
 
                 elif action == "verify_message":
-                    res = self.verify_message(content)
-                    if res:
-                        connection.send(b'good message!')
+                    cert_ver, mess_ver = self.verify_message(content)
+                    if cert_ver == 0 and mess_ver == 0:
+                        connection.send(b'No certificate found!')
+                    elif cert_ver and mess_ver:
+                        connection.send(b'verified certificate and message!')
+                    elif cert_ver and not mess_ver:
+                        connection.send(b'verified certificate and unverified message!')
+                    elif not cert_ver and mess_ver:
+                        connection.send(b'unverified certificate and verified message!')
                     else:
-                        connection.send(b'bad message!')
-                    print('finish verify_message action')
+                        connection.send(b'unverified certificate and unverified message!')
+                    print(f"{utils.Colors.server}finish verify_message action{utils.Colors.RESET}")
 
                 elif action == "get_cert":
                     res = self.send_cert()
                     connection.send(res.encode())
-                    print('finish send_cert action')
+                    print(f"{utils.Colors.server}finish send_cert action{utils.Colors.RESET}")
 
             else:
-                print('Connection closed', )
+                print(f"{utils.Colors.server}Connection closed{utils.Colors.RESET}", )
                 break
 
         connection.close()
@@ -182,19 +213,19 @@ class EntitySockets:
         cert, sep_letter, msg_and_signature = content.partition(constants.SEP_STRING)
 
         if cert == "None":
-            return False
+            return 0, 0
 
         cert = utils.str2cert(cert)
 
         msg, sep_string, signature = msg_and_signature.partition(constants.SEP_STRING)
 
         # get the certification and check it
-        res1 = self.verify_cert(cert)
+        cert_ver = self.verify_cert(cert)
 
         # get the message and check it
-        res2 = self.verify_msg_content(msg.encode(), cert, bytes.fromhex(signature))
+        mess_ver = self.verify_msg_content(msg.encode(), cert, bytes.fromhex(signature))
 
-        return res1 and res2
+        return cert_ver, mess_ver
 
     def send_cert(self):
         return utils.cert2str(self.entity.certificate)
@@ -214,7 +245,7 @@ class EntitySockets:
         entity_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         entity_server_socket.connect((constants.VA_IP, constants.VA_PORT))
         data = entity_server_socket.recv(constants.MESSAGE_SIZE).decode()
-        print(data)
+        print(f"{utils.Colors.client}{data}{utils.Colors.RESET}")
 
         action = 'verify_cert'
         content = utils.cert2str(cert)
@@ -227,5 +258,6 @@ class EntitySockets:
 
         # close the connection
         entity_server_socket.close()
-        print('------------------------------------------------------------------------------\n')
+        print(f"{utils.Colors.client}------------------------------------------------------------------------------\n"
+              f"{utils.Colors.RESET}")
         return res
