@@ -130,7 +130,6 @@ class VA:
         return data
 
     def revoke_cert(self, cert_str):
-        # TODO change the type to string
         try:
             cert = utils.str2cert(cert_str)
             if cert.domain == self.root_CA_domain:
