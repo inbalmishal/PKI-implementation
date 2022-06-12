@@ -7,12 +7,6 @@ from constants import *
 from certificate import Certificate
 
 
-class Colors:
-    server = '\033[92m'  # GREEN
-    client = '\033[94m'  # YELLOW
-    RESET = '\033[0m'  # RESET COLOR
-
-
 def generate_keys():
     private_key = rsa.generate_private_key(
         public_exponent=PUBLIC_EXPONENT,
@@ -36,7 +30,6 @@ def pr_key2str(prk):
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=serialization.NoEncryption()
     )
-    # print(pem_private[pem_private.find(b'\n')+1:pem_private.find(b'\n-----END RSA PRIVATE KEY-----\n')])
     return pem_private.decode()
 
 

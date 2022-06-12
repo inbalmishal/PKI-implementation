@@ -23,3 +23,9 @@ EN3_PORT = 65434
 SEP_STRING = '***'
 DATE_FORMAT = "%Y-%m-%d"
 MESSAGE_SIZE = 1000000000
+
+
+class Colors:
+    server = '\033[92m'  # GREEN
+    client = '\033[94m'  # BLUE
+    RESET = '\033[0m'  # RESET COLOR

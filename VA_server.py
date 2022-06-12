@@ -21,17 +21,17 @@ class VA:
         self.port = port
 
     def start_serv(self):
-        print(f"{utils.Colors.server}Setting up the server...{utils.Colors.RESET}")
+        print(f"{constants.Colors.server}Setting up the server...{constants.Colors.RESET}")
         self.server_socket.bind((self.ip, self.port))
         self.server_socket.listen(5)
-        print(f"{utils.Colors.server}Listening for clients...{utils.Colors.RESET}")
+        print(f"{constants.Colors.server}Listening for clients...{constants.Colors.RESET}")
 
         while True:
             client, client_address = self.server_socket.accept()
-            print(f"{utils.Colors.server}New client joined! {client_address}{utils.Colors.RESET}")
+            print(f"{constants.Colors.server}New client joined! {client_address}{constants.Colors.RESET}")
             start_new_thread(self.threaded_client, (client,))
             self.thread_count += 1
-            print(f"{utils.Colors.server}Thread Number:  {str(self.thread_count)}{utils.Colors.RESET}")
+            print(f"{constants.Colors.server}Thread Number:  {str(self.thread_count)}{constants.Colors.RESET}")
 
         server_socket.close()
 
@@ -46,7 +46,7 @@ class VA:
                 if action == "verify_cert":
                     res = self.verify_cert(content)
                     connection.send(str(res).encode())
-                    print(f"{utils.Colors.server}finish verify_cert action{utils.Colors.RESET}")
+                    print(f"{constants.Colors.server}finish verify_cert action{constants.Colors.RESET}")
 
                 elif action == "revoke_cert":
                     res = self.revoke_cert(content)
@@ -56,10 +56,10 @@ class VA:
                         answer = "Failed"
                     connection.send(answer.encode())
 
-                    print(f"{utils.Colors.server}finish revoke_cert action{utils.Colors.RESET}")
+                    print(f"{constants.Colors.server}finish revoke_cert action{constants.Colors.RESET}")
 
             else:
-                print(f"{utils.Colors.server}Connection closed{utils.Colors.RESET}", )
+                print(f"{constants.Colors.server}Connection closed{constants.Colors.RESET}", )
                 break
 
         connection.close()
@@ -119,7 +119,7 @@ class VA:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect((ip, port))
         data = client_socket.recv(constants.MESSAGE_SIZE).decode()
-        print(f"{utils.Colors.server}{data}{utils.Colors.RESET}")
+        print(f"{constants.Colors.server}{data}{constants.Colors.RESET}")
 
         client_socket.send(b'get_cert None')
 
@@ -137,7 +137,7 @@ class VA:
             else:
                 self.cancelled_certificates.append(cert_str)
         except Exception as e:
-            print(f"{utils.Colors.server}the error: {e}{utils.Colors.RESET}")
+            print(f"{constants.Colors.server}the error: {e}{constants.Colors.RESET}")
             return False
 
         return True
